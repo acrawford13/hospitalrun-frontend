@@ -11,12 +11,29 @@ describe('use add patient', () => {
     id: '123',
     givenName: 'givenName',
     familyName: 'familyName',
-    sex: 'male',
-    dateOfBirth: '01/01/2020',
+    emails: [],
   } as Patient
 
   beforeEach(() => {
     jest.resetAllMocks()
+  })
+
+  it('should clean patient data and save', async () => {
+    jest.spyOn(PatientRepository, 'save').mockResolvedValue({ id: '123' } as Patient)
+
+    const cleanedPatient = {
+      id: '123',
+      givenName: 'givenName',
+      familyName: 'familyName',
+      fullName: 'givenName familyName',
+    } as Patient
+
+    await executeMutation(() => useAddPatient(), {
+      patient,
+    })
+
+    expect(PatientRepository.save).toHaveBeenCalledTimes(1)
+    expect(PatientRepository.save).toHaveBeenCalledWith(cleanedPatient)
   })
 
   it('should throw an error if patient validation fails', async () => {

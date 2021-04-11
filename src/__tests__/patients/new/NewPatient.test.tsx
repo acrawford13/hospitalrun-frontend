@@ -79,7 +79,7 @@ describe('New Patient', () => {
     })
   })
 
-  it('should dispatch createPatient when save button is clicked', async () => {
+  it('should save patient when save button is clicked', async () => {
     setup()
     userEvent.type(screen.getByLabelText(/patient\.givenName/i), patient.givenName as string)
     userEvent.type(screen.getByLabelText(/patient\.familyName/i), patient.familyName as string)

@@ -6,7 +6,7 @@ import Patient from '../../../shared/model/Patient'
 import { expectOneConsoleError } from '../../test-utils/console.utils'
 import executeMutation from '../../test-utils/use-mutation.util'
 
-describe('use add patient', () => {
+describe('useAddPatient', () => {
   const patient = {
     id: '123',
     givenName: 'givenName',

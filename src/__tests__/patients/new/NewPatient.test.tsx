@@ -22,10 +22,10 @@ describe('New Patient', () => {
   const patient = {
     id: '123',
     givenName: 'givenName',
-    fullName: 'givenName',
+    fullName: 'givenName familyName',
     familyName: 'familyName',
     sex: 'male',
-    dateOfBirth: '01/01/2020',
+    dateOfBirth: new Date('01-01-2020').toISOString(),
   } as Patient
 
   let history: any
@@ -33,7 +33,8 @@ describe('New Patient', () => {
 
   const setup = (error?: any) => {
     jest.spyOn(PatientRepository, 'save').mockResolvedValue(patient)
-
+    jest.spyOn(PatientRepository, 'search').mockResolvedValue([patient])
+    jest.spyOn(PatientRepository, 'count').mockResolvedValue(1)
     history = createMemoryHistory()
     store = mockStore({ patient: { patient: {} as Patient, createError: error } } as any)
 
@@ -55,6 +56,27 @@ describe('New Patient', () => {
 
   beforeEach(() => {
     jest.resetAllMocks()
+    // add window.matchMedia
+    // this is necessary for the date picker to be rendered in desktop mode.
+    // if this is not provided, the mobile mode is rendered, which might lead to unexpected behavior
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string): MediaQueryList => ({
+        media: query,
+        // this is the media query that @material-ui/pickers uses to determine if a device is a desktop device
+        matches: query === '(pointer: fine)',
+        onchange: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    })
+  })
+
+  afterEach(() => {
+    delete window.matchMedia
   })
 
   it('should render a general information form', async () => {
@@ -71,30 +93,39 @@ describe('New Patient', () => {
   it('should dispatch createPatient when save button is clicked', async () => {
     setup()
     userEvent.type(screen.getByLabelText(/patient\.givenName/i), patient.givenName as string)
+    userEvent.type(screen.getByLabelText(/patient\.familyName/i), patient.familyName as string)
     userEvent.click(screen.getByRole('button', { name: /patients\.createPatient/i }))
     expect(PatientRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({ fullName: patient.fullName, givenName: patient.givenName }),
+      expect.objectContaining({
+        fullName: patient.fullName,
+        givenName: patient.givenName,
+        familyName: patient.familyName,
+      }),
     )
   })
 
   // TODO: https://github.com/HospitalRun/hospitalrun-frontend/pull/2516#issuecomment-753378004
-  // it('should reveal modal (return true) when save button is clicked if an existing patient has the same information', async () => {
-  //   const { container } = setup()
-  //   userEvent.type(screen.getByLabelText(/patient\.givenName/i), patient.givenName as string)
-  //   userEvent.type(screen.getByLabelText(/patient\.familyName/i), patient.familyName as string)
-  //   userEvent.type(
-  //     screen.getAllByPlaceholderText('-- Choose --')[0],
-  //     `${patient.sex}{arrowdown}{enter}`,
-  //   )
-  //   userEvent.type(
-  //     (container.querySelector('.react-datepicker__input-container') as HTMLInputElement)
-  //       .children[0],
-  //     '01/01/2020',
-  //   )
-  //   userEvent.click(screen.getByRole('button', { name: /patients\.createPatient/i }))
-  //   expect(await screen.findByRole('alert')).toBeInTheDocument()
-  //   expect(screen.getByText(/patients.duplicatePatientWarning/i)).toBeInTheDocument()
-  // })
+  it.only('should reveal modal when save button is clicked if an existing patient has the same information', async () => {
+    const { container } = setup()
+
+    userEvent.type(screen.getByLabelText(/patient\.givenName/i), patient.givenName as string)
+    userEvent.type(screen.getByLabelText(/patient\.familyName/i), patient.familyName as string)
+    userEvent.type(
+      screen.getAllByPlaceholderText('-- Choose --')[0],
+      `${patient.sex}{arrowdown}{enter}`,
+    )
+    userEvent.type(
+      (container.querySelector('.react-datepicker__input-container') as HTMLInputElement)
+        .children[0],
+      '01/01/2020',
+    )
+    userEvent.click(screen.getByRole('button', { name: /patients\.createPatient/i }))
+    await waitFor(() => {
+      expect(PatientRepository.search).toHaveBeenCalledWith('givenName familyName')
+    })
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByText(/patients.duplicatePatientWarning/i)).toBeInTheDocument()
+  })
 
   it('should navigate to /patients/:id and display a message after a new patient is successfully created', async () => {
     jest.spyOn(components, 'Toast').mockImplementation(jest.fn())

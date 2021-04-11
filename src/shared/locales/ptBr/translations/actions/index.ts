@@ -10,6 +10,12 @@ export default {
     new: 'Novo',
     list: 'Lista',
     search: 'Pesquisar',
-    confirmDelete: 'Eliminar confirmação',
+    confirmDelete: 'Confirmar eliminação',
+    next: 'Proximo',
+    previous: 'Anterior',
+    page: 'Página',
+    add: 'Adicionar',
+    view: 'Ver',
+    logout: 'Logoff',
   },
 }

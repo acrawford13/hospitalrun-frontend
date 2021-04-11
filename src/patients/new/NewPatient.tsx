@@ -7,7 +7,8 @@ import { useUpdateTitle } from '../../page-header/title/TitleContext'
 import useTranslator from '../../shared/hooks/useTranslator'
 import Patient from '../../shared/model/Patient'
 import GeneralInformation, { Error } from '../GeneralInformation'
-import useAddPatient, { DuplicatePatientError } from '../hooks/useAddPatient'
+import useAddPatient from '../hooks/useAddPatient'
+import { DuplicatePatientError } from '../util/validate-unique-patient'
 import DuplicateNewPatientModal from './DuplicateNewPatientModal'
 
 const breadcrumbs = [
@@ -36,12 +37,12 @@ const NewPatient = () => {
     history.push('/patients')
   }
 
-  const onSuccessfulSave = (newPatient: Patient) => {
-    history.push(`/patients/${newPatient.id}`)
+  const onSuccessfulSave = (newPatient?: Patient) => {
+    history.push(`/patients/${newPatient?.id}`)
     Toast(
       'success',
       t('states.success'),
-      `${t('patients.successfullyCreated')} ${newPatient.fullName}`,
+      `${t('patients.successfullyCreated')} ${newPatient?.fullName}`,
     )
   }
 
@@ -52,11 +53,7 @@ const NewPatient = () => {
   const onSave = async ({ flagDuplicates } = {} as AddPatientRequest) => {
     setShowDuplicateNewPatientModal(false)
     try {
-      // TODO: clean this up
-      const newPatient = await mutate({ patient, flagDuplicates })
-      if (newPatient) {
-        onSuccessfulSave(newPatient)
-      }
+      await mutate({ patient, flagDuplicates }).then((newPatient) => onSuccessfulSave(newPatient))
     } catch (e) {
       if (e instanceof DuplicatePatientError) {
         setShowDuplicateNewPatientModal(true)

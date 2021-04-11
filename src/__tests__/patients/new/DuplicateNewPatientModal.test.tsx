@@ -23,6 +23,7 @@ const setup = (onClose: any, onContinue: any) => {
     <Provider store={store}>
       <DuplicateNewPatientModal
         show
+        duplicatePatients={[]}
         toggle={jest.fn()}
         onCloseButtonClick={onClose}
         onContinueButtonClick={onContinue}

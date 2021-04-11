@@ -60,10 +60,6 @@ describe('New Patient', () => {
     jest.resetAllMocks()
   })
 
-  afterEach(() => {
-    delete window.matchMedia
-  })
-
   it('should render a general information form', async () => {
     setup()
     expect(screen.getByText(/patient\.basicInformation/i))

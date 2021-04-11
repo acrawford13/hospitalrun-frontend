@@ -16,6 +16,10 @@ const breadcrumbs = [
   { i18nKey: 'patients.newPatient', location: '/patients/new' },
 ]
 
+interface AddPatientRequest {
+  flagDuplicates?: boolean
+}
+
 const NewPatient = () => {
   const { t } = useTranslator()
   const history = useHistory()
@@ -46,12 +50,7 @@ const NewPatient = () => {
     )
   }
 
-  interface AddPatientRequest {
-    flagDuplicates?: boolean
-  }
-
   const onSave = async ({ flagDuplicates } = {} as AddPatientRequest) => {
-    setShowDuplicateNewPatientModal(false)
     try {
       await mutate({ patient, flagDuplicates }).then((newPatient) => onSuccessfulSave(newPatient))
     } catch (e) {
@@ -59,7 +58,7 @@ const NewPatient = () => {
         setShowDuplicateNewPatientModal(true)
         setDuplicatePatients(e.duplicatePatients)
       } else {
-        setPatientError(e.fieldErrors)
+        setPatientError({ message: t('patient.errors.updatePatientError'), ...e.fieldErrors })
       }
     }
   }

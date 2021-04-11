@@ -29,7 +29,7 @@ async function addPatient(request: AddPatientRequest): Promise<Patient> {
     return newPatient as Patient
   }
 
-  if (isEmpty(error)) {
+  if (!isEmpty(duplicateError)) {
     throw duplicateError
   }
 
@@ -38,8 +38,8 @@ async function addPatient(request: AddPatientRequest): Promise<Patient> {
 
 export default function useAddPatient() {
   return useMutation(addPatient, {
-    onSuccess: async (data) => {
-      await queryCache.setQueryData(['patients', 'patients', data.id], data)
+    onSuccess: async () => {
+      await queryCache.invalidateQueries('patients')
     },
     throwOnError: true,
   })

@@ -11,9 +11,12 @@ import thunk from 'redux-thunk'
 
 import * as titleUtil from '../../../page-header/title/TitleContext'
 import NewPatient from '../../../patients/new/NewPatient'
+import * as validatePatient from '../../../patients/util/validate-patient'
+import * as validateUniquePatient from '../../../patients/util/validate-unique-patient'
 import PatientRepository from '../../../shared/db/PatientRepository'
 import Patient from '../../../shared/model/Patient'
 import { RootState } from '../../../shared/store'
+import { expectOneConsoleError } from '../../test-utils/console.utils'
 
 const { TitleProvider } = titleUtil
 const mockStore = createMockStore<RootState, any>([thunk])
@@ -31,12 +34,11 @@ describe('New Patient', () => {
   let history: any
   let store: MockStore
 
-  const setup = (error?: any) => {
+  const setup = () => {
     jest.spyOn(PatientRepository, 'save').mockResolvedValue(patient)
-    jest.spyOn(PatientRepository, 'search').mockResolvedValue([patient])
-    jest.spyOn(PatientRepository, 'count').mockResolvedValue(1)
+    jest.spyOn(PatientRepository, 'search').mockResolvedValue([])
     history = createMemoryHistory()
-    store = mockStore({ patient: { patient: {} as Patient, createError: error } } as any)
+    store = mockStore({ patient: { patient: {} as Patient } } as any)
 
     history.push('/patients/new')
 
@@ -56,23 +58,6 @@ describe('New Patient', () => {
 
   beforeEach(() => {
     jest.resetAllMocks()
-    // add window.matchMedia
-    // this is necessary for the date picker to be rendered in desktop mode.
-    // if this is not provided, the mobile mode is rendered, which might lead to unexpected behavior
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: (query: string): MediaQueryList => ({
-        media: query,
-        // this is the media query that @material-ui/pickers uses to determine if a device is a desktop device
-        matches: query === '(pointer: fine)',
-        onchange: () => {},
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-        dispatchEvent: () => false,
-      }),
-    })
   })
 
   afterEach(() => {
@@ -84,10 +69,18 @@ describe('New Patient', () => {
     expect(screen.getByText(/patient\.basicInformation/i))
   })
 
-  it('should pass the error object to general information', async () => {
-    const expectedError = { message: 'some message' }
-    setup(expectedError)
-    expect(screen.getByRole('alert')).toHaveTextContent(expectedError.message)
+  it('should render error messages when validation fails', async () => {
+    setup()
+
+    const fieldErrors = { fieldErrors: { givenName: 'Invalid' } }
+    jest.spyOn(validatePatient, 'default').mockReturnValue(fieldErrors)
+    expectOneConsoleError(fieldErrors)
+
+    userEvent.click(screen.getByRole('button', { name: /patients\.createPatient/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/patient\.errors\.updatePatientError/i)
+      expect(screen.getByLabelText(/patient\.givenName/i)).toHaveClass('is-invalid')
+    })
   })
 
   it('should dispatch createPatient when save button is clicked', async () => {
@@ -95,18 +88,25 @@ describe('New Patient', () => {
     userEvent.type(screen.getByLabelText(/patient\.givenName/i), patient.givenName as string)
     userEvent.type(screen.getByLabelText(/patient\.familyName/i), patient.familyName as string)
     userEvent.click(screen.getByRole('button', { name: /patients\.createPatient/i }))
-    expect(PatientRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fullName: patient.fullName,
-        givenName: patient.givenName,
-        familyName: patient.familyName,
-      }),
-    )
+    await waitFor(() => {
+      expect(PatientRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fullName: patient.fullName,
+          givenName: patient.givenName,
+          familyName: patient.familyName,
+        }),
+      )
+    })
   })
 
-  // TODO: https://github.com/HospitalRun/hospitalrun-frontend/pull/2516#issuecomment-753378004
-  it.only('should reveal modal when save button is clicked if an existing patient has the same information', async () => {
+  it('should reveal modal when save button is clicked if an existing patient has the same information', async () => {
     const { container } = setup()
+
+    const expectedError = new validateUniquePatient.DuplicatePatientError()
+    jest.spyOn(validateUniquePatient, 'default').mockReturnValue(expectedError)
+    jest.spyOn(PatientRepository, 'search').mockResolvedValue([patient])
+
+    expectOneConsoleError(expectedError)
 
     userEvent.type(screen.getByLabelText(/patient\.givenName/i), patient.givenName as string)
     userEvent.type(screen.getByLabelText(/patient\.familyName/i), patient.familyName as string)
@@ -117,14 +117,16 @@ describe('New Patient', () => {
     userEvent.type(
       (container.querySelector('.react-datepicker__input-container') as HTMLInputElement)
         .children[0],
-      '01/01/2020',
+      '{selectall}01/01/2020{enter}',
     )
     userEvent.click(screen.getByRole('button', { name: /patients\.createPatient/i }))
+
     await waitFor(() => {
       expect(PatientRepository.search).toHaveBeenCalledWith('givenName familyName')
     })
+
     expect(await screen.findByRole('alert')).toBeInTheDocument()
-    expect(screen.getByText(/patients.duplicatePatientWarning/i)).toBeInTheDocument()
+    expect(await screen.getByText(/patients.duplicatePatientWarning/i)).toBeInTheDocument()
   })
 
   it('should navigate to /patients/:id and display a message after a new patient is successfully created', async () => {

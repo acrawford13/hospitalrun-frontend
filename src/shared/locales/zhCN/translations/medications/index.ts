@@ -7,7 +7,7 @@ export default {
       draft: '草案',
       active: '活性',
       onHold: '等候接听',
-      cancelled: '取消',
+      canceled: '取消',
       completed: '已完成',
       enteredInError: '输入错误',
       stopped: '已停止',

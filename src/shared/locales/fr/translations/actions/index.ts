@@ -11,5 +11,11 @@ export default {
     list: 'Liste',
     search: 'Rechercher',
     confirmDelete: 'Confirmer la suppression',
+    next: 'Suivant',
+    previous: 'Précédent',
+    page: 'Page',
+    add: 'Ajouter',
+    view: 'Voir',
+    logout: 'Se déconnecter',
   },
 }

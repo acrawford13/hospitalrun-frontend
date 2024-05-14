@@ -14,7 +14,7 @@ import { ContactInfoPiece } from '../shared/model/ContactInformation'
 import Patient from '../shared/model/Patient'
 import ContactInfo from './ContactInfo'
 
-interface Error {
+export interface Error {
   message?: string
   prefix?: string
   givenName?: string

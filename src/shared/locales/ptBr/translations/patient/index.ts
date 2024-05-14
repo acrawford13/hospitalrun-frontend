@@ -88,7 +88,7 @@ export default {
       label: 'Remédios',
       new: 'Adicionar novo medicamento',
       warning: {
-        noMedications: 'Nomejikachion s',
+        noMedications: 'Sem medicamentos',
       },
       noMedicationsMessage: 'Nenhum pedido de medicamentos para esta pessoa.',
     },
